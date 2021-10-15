@@ -27,7 +27,7 @@ jobs:
     - name: Zip up package 
       run: |
             ls -R
-            tar -zcvf package.tar.gz ./
+            tar -zcvf ../package.tar.gz ./
         
     - name: Veracode Upload And Scan
       uses: veracode/veracode-uploadandscan-action@master
@@ -36,7 +36,7 @@ jobs:
         createprofile: true
         createsandbox: true
         version: ${{ github.run_id }}
-        filepath: package.tar.gz
+        filepath: ../package.tar.gz
         sandboxname: Github-Sandbox
         vid: ${{ secrets.VERACODE_API_ID }}
         vkey: ${{ secrets.VERACODE_API_KEY }}
