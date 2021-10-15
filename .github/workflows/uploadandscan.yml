@@ -1,7 +1,7 @@
 # This workflow will build a package using Maven and then publish it to GitHub packages when a release is created
 # For more information see: https://github.com/actions/setup-java/blob/main/docs/advanced-usage.md#apache-maven-with-a-settings-path
 
-name: Maven Package
+name: Vericode Scan
 
 on:
   workflow_dispatch
@@ -27,7 +27,7 @@ jobs:
     - name: Zip up package 
       run: |
             ls -R
-            tar -zcvf package.tar.gz ./lvfs
+            tar -zcvf package.tar.gz ./
         
     - name: Veracode Upload And Scan
       uses: veracode/veracode-uploadandscan-action@master
