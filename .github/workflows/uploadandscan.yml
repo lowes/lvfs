@@ -37,7 +37,7 @@ jobs:
     - name: Veracode Upload And Scan
       uses: veracode/veracode-uploadandscan-action@master
       with:
-        appname: Verademo GitHub
+        appname: Data Science - lvfs
         createprofile: true
         createsandbox: true
         version: ${{ github.run_id }}
