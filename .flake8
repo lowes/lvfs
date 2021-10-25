@@ -1,0 +1,9 @@
+[flake8]
+# E1136:
+#     We can't explain to pylint that Vault() is subscriptable,
+#     and even with postponed annotations it still doesn't recognize it
+#     So we are opting to ignore the error
+ignore = E114, E116, E133, E266, E302, E402, W503, W504, E1136
+max-doc-length = 100
+max-line-length = 100
+max-complexity = -1
