@@ -457,7 +457,7 @@ class URL(ABC):
         return await self._read_file(pd.read_csv, recursive=recursive)
 
     async def write_csv(self, csv: pd.DataFrame, **_opts):
-        """ Write the given Pandas dataframe to a parquet file """
+        """ Write the given Pandas dataframe to a csv file """
         table = pa.Table.from_pandas(csv)
         bytefile = io.BytesIO()
         pc.write_table(table, bytefile)
