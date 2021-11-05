@@ -26,6 +26,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
+        # Kerberos must be installed for kerberos support
+        apt-get install -f libkrb5-dev
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest flit
         flit install
