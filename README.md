@@ -105,7 +105,7 @@ credentials:
   # In Yaml the - indiciates this is a list element.
   # Any additional stanzas will start with a similar -
   - realm:
-  	  # LVFS uses realms to determine which set of credentials to use for each URL.
+      # LVFS uses realms to determine which set of credentials to use for each URL.
       # Every credential stanza gets one realm.
       # LVFS will use the first stanza that matches the URL.
       # In this case we match anything using HDFSOverSSH
@@ -134,7 +134,7 @@ processing within the cluster. In that case, configuration is a lot easier.
 ```yaml
 credentials:
   - realm:
-  	  # For historic reasons, all HDFS connections use the HDFSOverSSH connection class
+      # For historic reasons, all HDFS connections use the HDFSOverSSH connection class
       # because SSH will be disabled when you don't configure it here.
       classname: HDFSOverSSH
     # This is the Hadoop username; there is no jumpbox
@@ -207,11 +207,11 @@ At any rate, this is not been tested with LVFS.
 For later reference, these are the possible modes for HDFSOverSSH:
 
 ssh_jump_host | ssh_username | username | password | webhdfs_root | use case
---------------|--------------|----------|----------|--------------------------------------
-*             | *            | *        | *        | None         | Invalid, unconfigured
-not None      | None         | *        | *        | *            | Invalid
-None          | not None     | *        | *        | *            | Invalid
-*             | *            | None     | not None | *            | Invalid
+------------- | ------------ | -------- | -------- | ------------ | --------
+(any)         | (any)        | (any)    | (any)    | None         | Invalid, unconfigured
+not None      | None         | (any)    | (any)    | (any)        | Invalid
+None          | not None     | (any)    | (any)    | (any)        | Invalid
+(any)         | (any)        | None     | not None | (any)        | Invalid
 not None      | not None     | not None | None     | not None     | HDP2 with SSH
 None          | None         | not None | None     | not None     | HDP2 without SSH
 not None      | not None     | not None | not None | not None     | HDP3+AD with SSH
