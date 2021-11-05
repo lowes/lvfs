@@ -4,7 +4,13 @@
 name: Vericode Scan
 
 on:
-  workflow_dispatch
+  push:
+    branches: [ main, development ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ main, development ]
+  schedule:
+    - cron: '42 3 * * 5'
 
 jobs:
   build:
