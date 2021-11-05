@@ -3,6 +3,7 @@ RUN useradd -d /home/nemo -m nemo
 WORKDIR /home/nemo/lvfs
 RUN pip install flit
 COPY lvfs /home/nemo/lvfs/lvfs
+COPY tests /home/nemo/lvfs/tests
 COPY README.md pyproject.toml /home/nemo/lvfs/
 RUN chown -R nemo /home/nemo
 USER nemo
@@ -28,3 +29,4 @@ RUN python3 -m venv .venv \
 
 FROM starter as novenv-install
 RUN flit install
+
