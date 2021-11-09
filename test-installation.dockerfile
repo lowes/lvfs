@@ -1,30 +1,15 @@
-FROM python:3.7 AS starter
-RUN useradd -d /home/nemo -m nemo
-WORKDIR /home/nemo/lvfs
-RUN pip install flit
-COPY lvfs /home/nemo/lvfs/lvfs
-COPY README.md pyproject.toml /home/nemo/lvfs/
-RUN chown -R nemo /home/nemo
-USER nemo
-# Normally you don't override PATH because your normally don't use virtualenv inside docker
-# But this is not a normal script.
-ENV PATH /home/nemo/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+FROM python:3.9
+RUN mkdir -p /app/lvfs \
+&&  pip install -U pip \
+&&  pip install flit \
+&&  wget "https://dl.min.io/server/minio/release/linux-amd64/minio" \
+&&  chmod 755 minio \
+&&  mv minio /usr/bin/minio
+WORKDIR /app
+COPY lvfs/__init__.py /app/lvfs/__init__.py
+COPY README.md pyproject.toml /app/
+RUN FLIT_ROOT_INSTALL=1 flit install -s
 
-
-FROM starter AS wheel-build
-RUN python3 -m venv .venv \
-    && . .venv/bin/activate \
-    && flit build
-
-FROM starter AS symlink-install
-RUN python3 -m venv .venv \
-    && . .venv/bin/activate \
-    && flit install -s
-
-FROM starter AS normal-install
-RUN python3 -m venv .venv \
-    && . .venv/bin/activate \
-    && flit install
-
-FROM starter as novenv-install
-RUN flit install
+COPY lvfs /app/lvfs
+COPY tests /app/tests
+COPY tests/data/default-lvfs.yml /root/.config/lvfs.yml
