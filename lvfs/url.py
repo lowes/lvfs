@@ -111,9 +111,9 @@ class URL(ABC):
             Returns a ParseResult.
 
             Example:
-            >>> urllib.parse.urlparse("derk://admin@uhhuh/local/thing;xyz?key=value&key2=value2#4")
+            >>> urllib.parse.urlparse("derk://admin@uhhuh:8080/local/thing;xyz?key=value&key2=value2#4")
             ParseResult(
-                scheme='derk', netloc='admin@uhhuh', path='/local/thing', params='xyz',
+                scheme='derk', netloc='admin@uhhuh:8080', path='/local/thing', params='xyz',
                 query='key=value&key2=value2', fragment='4'
             )
         """
@@ -223,6 +223,20 @@ class URL(ABC):
                 so with the specific implementations you plan to use.
         """
         raise NotImplementedError
+    
+    def supports_directories(self) -> bool:
+        """ Return whether the protocol supports first-class directories.
+
+            Notes
+            -----
+            If the filesystems support directories, then:
+                - mkdir() and isdir() have meaning
+                - mkdir() followed by isdir() should be True
+            Otherwise:
+                - mkdir() has no effect and isdir() degrades to best-effort
+                  which usually means it will only be True if the directory has content
+        """
+        return True
 
     @abstractmethod
     async def ls(self, recursive: bool = False):
@@ -446,12 +460,39 @@ class URL(ABC):
                 else:
                     return pandas_obj
 
-    async def read_csv(self, *, recursive: bool = False) -> pd.DataFrame:
+    async def read_csv(self, *, recursive: bool = False, **pandas_args) -> pd.DataFrame:
         """ Read one or many csv files
-            - If this is a directory, read all the csv files within it.
-            - If recursive, read all csv descended from it ad infinitum
+
+            Accepts
+            -------
+            recursive: bool: Whether to read all CSV files within the directory
+            pandas_args: dict: any other arguments to pass to read_csv(), which is very flexible
+
+            Notes
+            -----
+            - The CSV serialization library may one day change (on a minor version bump), in which
+              case extensively customizing the serialization may incur tech debt
+            - Recursion is not supported when writing, so round-trips require you to write to
+              a specific file, not a whole directory!
         """
-        return await self._read_file(pd.read_csv, recursive=recursive)
+        return await self._read_file(lambda f: pd.read_csv(f, **pandas_args), recursive=recursive)
+    
+    async def write_csv(self, frame: pd.DataFrame, **pandas_args):
+        """ Write exactly one CSV file (not a directory)
+        
+            Accepts
+            -------
+            frame: Pandas Dataframe: the frame to write to a file
+            pandas_args: dict: any other arguments to pass to to_csv(), which is very flexible
+
+            Notes
+            -----
+            The CSV serialization library may one day change (on a minor version bump), in which
+            case extensively customizing the serialization may incur tech debt
+        """
+        file_handle = io.BytesIO()
+        frame.to_csv(file_handle, **pandas_args)
+        await self.write_binary(file_handle.getbuffer())
 
     async def read_parquet(self, *, recursive: bool = False) -> pd.DataFrame:
         """ Read one or many parquet files
@@ -883,3 +924,20 @@ class URL(ABC):
         """
         chunks = [chunk async for chunk in gen]
         await self.write_binary(b"".join(chunks))
+
+    async def make_bucket(self):
+        """ Make a bucket.
+
+            Notes
+            -----
+            The path is not used and no folders are created.
+            For filesystems without buckets, this method has no effect.
+            In other filesystems you may need special permissions to create buckets.
+            Creating buckets programmatically may be unwise on account of billing.
+
+            Errors
+            ------
+            Creating a bucket that already exists will fail with an error,
+            provided the filesystem supports buckets and can recognize the bucket exists.
+        """
+        pass

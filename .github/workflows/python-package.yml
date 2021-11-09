@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9"]
+        python-version: ["3.7", "3.8", "3.9"]
 
     steps:
     - uses: actions/checkout@v2
@@ -28,6 +28,10 @@ jobs:
       run: |
         # Kerberos must be installed for kerberos support
         sudo apt-get install -f libkrb5-dev
+        # Minio support
+        wget https://dl.min.io/server/minio/release/linux-amd64/minio
+        chmod +x minio
+        sudo mv minio /usr/bin/minio
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest flit
         flit install

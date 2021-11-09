@@ -26,7 +26,7 @@ class Credentials:
             location: List of Paths to try to read the configuration from (must be local)
 
             If location is not specified, the following locations will be searched:
-            * `./lvfs.conf`
+            * `./lvfs.yml`
             * `~/.config/lvfs.yml`
             * `/etc/creds/lvfs.yml`
             * `/etc/secret/lvfs.yml`
