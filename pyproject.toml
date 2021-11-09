@@ -9,7 +9,7 @@ author-email = " lowesopensource@lowes.com"
 home-page = "https://github.com/lowes"
 classifiers = ["License :: OSI Approved :: MIT License"]
 description-file = "README.md"
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 requires = [
     "pandas ~= 1.0",
     "pyyaml ~= 5.3",
