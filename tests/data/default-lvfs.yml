@@ -1,5 +1,0 @@
-credentials:
-  - realm:
-      classname: Minio
-    access_key: testuser
-    secret_key: thisisonlyfortests

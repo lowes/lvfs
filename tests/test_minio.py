@@ -1,20 +1,27 @@
 from pathlib import Path
 import subprocess
 from lvfs import URL
+from lvfs.credentials import Credentials
 import pytest
 import time
 import logging
 import os
+import secrets
 
 MINHOME = URL.to("s3://localhost:9000/default")
 
 MINIO_PROCESSES = []
 async def ensure_minio_is_running():
     if not MINIO_PROCESSES:
+        # Populate test credentials
+        access_key = secrets.token_hex(16)
+        secret_key = secrets.token_hex(16)
+        Credentials.register(dict(access_key=access_key, secret_key=secret_key), "Minio")
+        
         logging.info("Starting Minio server")
         proc = subprocess.Popen(
             ["/usr/bin/minio", "server", Path.cwd().joinpath("tests/data").as_posix()],
-            env=dict(MINIO_ROOT_USER="testuser", MINIO_ROOT_PASSWORD="thisisonlyfortests", **os.environ)
+            env=dict(MINIO_ROOT_USER=access_key, MINIO_ROOT_PASSWORD=secret_key, **os.environ)
         )
         try:
             proc.wait(3)

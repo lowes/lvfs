@@ -12,4 +12,3 @@ RUN FLIT_ROOT_INSTALL=1 flit install -s
 
 COPY lvfs /app/lvfs
 COPY tests /app/tests
-COPY tests/data/default-lvfs.yml /root/.config/lvfs.yml
