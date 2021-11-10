@@ -3,11 +3,7 @@
 
 name: Python package
 
-on:
-  push:
-    branches: [ main, development ]
-  pull_request:
-    branches: [ main, development ]
+on: push
 
 jobs:
   build:
@@ -24,17 +20,35 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Install Kerberos
       run: |
-        # Kerberos must be installed for kerberos support
-        sudo apt-get install -f libkrb5-dev
-        # Minio support
+        sudo apt-get install -y libkrb5-dev
+    - name: Install Minio
+      run: |
         wget https://dl.min.io/server/minio/release/linux-amd64/minio
         chmod +x minio
         sudo mv minio /usr/bin/minio
+    - name: Install Hadoop
+      run: |
+        sudo apt-get install -y openjdk-11-jre-headless
+        wget https://dlcdn.apache.org/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
+        tar -zxf hadoop-3.3.1.tar.gz
+        mv hadoop-3.3.1 /opt
+    
+    - name: Install LVFS with flit
+      run: |
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest flit
         flit install
+
+    - name: Cache Minio, Hadoop, and Pip
+      uses: actions/cache@v2
+      with:
+        path: |
+          /usr/bin/minio
+          /opt
+          /usr/local/lib/python3.9/site-packages
+    
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names

@@ -1,5 +1,8 @@
 L Virtual File System
 =====================
+[![Python package](https://github.com/lowes/lvfs/actions/workflows/python-package.yml/badge.svg)](https://github.com/lowes/lvfs/actions/workflows/python-package.yml)
+[![CodeQL](https://github.com/lowes/lvfs/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/lowes/lvfs/actions/workflows/codeql-analysis.yml)
+[![Vericode Scan](https://github.com/lowes/lvfs/actions/workflows/uploadandscan.yml/badge.svg)](https://github.com/lowes/lvfs/actions/workflows/uploadandscan.yml)
 
 Rationale
 ---------
