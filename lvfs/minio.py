@@ -58,7 +58,7 @@ class Minio(URL):
             raise ValueError(f"No bucket specified for Minio URL {self}")
         return bucket
 
-    def __path_without_bucket(self, required=True):
+    def __path_without_bucket(self):
         """ Get the path without the bucket from this URL.
 
             Accepts
@@ -67,22 +67,18 @@ class Minio(URL):
         """
         path = self.path
         path = path[1:] if path.startswith("/") else path
-        path = path.split("/", 1)[1] if "/" in path else None
-        path = path or None
-        if required and not path:
-            raise ValueError(f"No path specified for Minio URL {self}")
-        return path
+        return path.split("/", 1)[1] if "/" in path else ""
 
     def __connect(self):
-        creds = self.__creds
-        if creds not in self.__clients:
-            self.__clients[creds] = minio.Minio(
+        host, creds = self.host, self.__creds
+        if (host, creds) not in self.__clients:
+            self.__clients[(host, creds)] = minio.Minio(
                 self.host,
                 access_key=creds[0],
                 secret_key=creds[1],
                 secure=creds[2]
             )
-        return self.__clients[creds]
+        return self.__clients[(host, creds)]
 
     @_wrap_error
     async def read_binary(self) -> bytes:
@@ -122,12 +118,12 @@ class Minio(URL):
         """ Get the list of files in this directory, if it is one
 
             Returns a list of URL objects. Results are always absolute.
-            *DO NOT `root.join(file)`*
         """
         bucket = self.__bucket()
         if bucket:
             prefix = self.__path_without_bucket()
-            prefix = prefix if prefix.endswith("/") else prefix + "/"
+            if prefix and not prefix.endswith("/"):
+                prefix = prefix + "/"
             return [
                 # These paths are relative to the bucket, but join()
                 # is relative to this prefix. So slice it off.
@@ -175,11 +171,36 @@ class Minio(URL):
             ignore_if_exists: boolean: DEPRECATED
                 Included for backward compatibility. Existing directories are always ignored.
         """
-        # This doesn't really exist
+        # This doesn't really exist, but it sorta does for buckets
+    
+    @_wrap_error
+    async def make_bucket(self):
+        """ Create a bucket.
+
+            The path is not used and no folders are created.
+            For filesystems without buckets, this method has no effect.
+            In other filesystems you may need special permissions to create buckets.
+            Creating buckets programmatically may be unwise on account of billing.
+        """
+        self.__connect().make_bucket(self.__bucket())
 
     def supports_permissions(self) -> bool:
         """ Some implementations, like blobs, do not always support permissions,
             If this method returns true, the file system supports permissions
+        """
+        return False
+    
+    def supports_directories(self) -> bool:
+        """ Return whether the protocol supports first-class directories.
+
+            Notes
+            -----
+            If the filesystems support directories, then:
+                - mkdir() and isdir() have meaning
+                - mkdir() followed by isdir() should be True
+            Otherwise:
+                - mkdir() has no effect and isdir() degrades to best-effort
+                  which usually means it will only be True if the directory has content
         """
         return False
 

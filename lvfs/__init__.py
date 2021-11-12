@@ -11,7 +11,7 @@ Supported Protocols
 * Artifactory, for model and code reading and writing
 """
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 __all__ = ["URL"]
 import copyreg
 import urllib
