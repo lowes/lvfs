@@ -45,3 +45,11 @@ async def test_read_parquet():
     warnings.simplefilter(action="ignore", category=FutureWarning)
     x = await URL.to(os.path.join(data_dir, "test_parquet.pq")).read_parquet()
     assert x.to_json() == '{"x":{"0":1,"1":2,"2":3},"y":{"0":4,"1":5,"2":6}}'
+
+@pytest.mark.asyncio
+async def test_read_orc():
+    warnings.simplefilter(action="ignore", category=DeprecationWarning)
+    warnings.simplefilter(action="ignore", category=FutureWarning)
+    x = await URL.to(os.path.join(data_dir, "test_orc.orc")).read_orc()
+    assert x.to_json() == ('{"name":{"0":"Chloe","1":"Myrtle"},'
+                           '"location":{"0":"Koniginstadt","1":null}}')
