@@ -1,7 +1,6 @@
 from typing import Generator, List, Tuple
 from lvfs.url import URL
 import os
-import pandas as pd
 import aiofiles
 from lvfs.stat import Stat
 

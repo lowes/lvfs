@@ -107,7 +107,7 @@ async def test_directories(home: URL, init):
         await item.mkdir()
         assert item in await home.ls()
         assert await item.isdir()
-    
+
     # Even if the directory is not supported its content will be empty
     assert [] == await item.ls()
 

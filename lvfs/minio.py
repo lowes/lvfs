@@ -172,7 +172,7 @@ class Minio(URL):
                 Included for backward compatibility. Existing directories are always ignored.
         """
         # This doesn't really exist, but it sorta does for buckets
-    
+
     @_wrap_error
     async def make_bucket(self):
         """ Create a bucket.
@@ -189,7 +189,7 @@ class Minio(URL):
             If this method returns true, the file system supports permissions
         """
         return False
-    
+
     def supports_directories(self) -> bool:
         """ Return whether the protocol supports first-class directories.
 
