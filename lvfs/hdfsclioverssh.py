@@ -24,7 +24,7 @@ class HDFSCLIOverSSH(URL):
         assert "ssh_jump_host" in creds, \
             "You must provide an ssh_jump_host in lvfs.yml to use HDFSCLIOverSSH"
         ssh_jump_host = creds.get("ssh_jump_host")
-        # This is hdpdib for backward compatibility
+        # This is for backward compatibility
         assert "ssh_username" in creds, \
             "You must provide an ssh_username in lvfs.yml to use HDFSCLIOverSSH"
         username = creds.get("ssh_username")
