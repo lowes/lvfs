@@ -1,4 +1,4 @@
-L Virtual File System
+Light Virtual File System
 =====================
 
 Rationale
@@ -220,7 +220,7 @@ not None      | not None     | kerberos | None     | not None     | HDP3+Kerbero
 None          | None         | kerberos | None     | not None     | HDP3+Kerberos with SSH
 
 (&) untested
-  
+
 Example code
 ============
 

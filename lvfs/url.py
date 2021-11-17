@@ -111,10 +111,10 @@ class URL(ABC):
             Returns a ParseResult.
 
             Example:
-            >>> urllib.parse.urlparse("derk://admin@uhhuh:8080/local/thing;xyz?key=value&key2=value2#4")
+            >>> urllib.parse.urlparse("derk://admin@uhhuh:8080/local/dir;xyz?key=val&key2=val2#4")
             ParseResult(
-                scheme='derk', netloc='admin@uhhuh:8080', path='/local/thing', params='xyz',
-                query='key=value&key2=value2', fragment='4'
+                scheme='derk', netloc='admin@uhhuh:8080', path='/local/dir', params='xyz',
+                query='key=val&key2=val2', fragment='4'
             )
         """
         return urllib.parse.urlparse(self.raw)
@@ -223,7 +223,7 @@ class URL(ABC):
                 so with the specific implementations you plan to use.
         """
         raise NotImplementedError
-    
+
     def supports_directories(self) -> bool:
         """ Return whether the protocol supports first-class directories.
 
@@ -476,10 +476,10 @@ class URL(ABC):
               a specific file, not a whole directory!
         """
         return await self._read_file(lambda f: pd.read_csv(f, **pandas_args), recursive=recursive)
-    
+
     async def write_csv(self, frame: pd.DataFrame, **pandas_args):
         """ Write exactly one CSV file (not a directory)
-        
+
             Accepts
             -------
             frame: Pandas Dataframe: the frame to write to a file

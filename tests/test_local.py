@@ -1,7 +1,5 @@
 import os
-import pandas as pd
 import warnings
-import asyncio
 import pytest
 from lvfs import URL
 from tests import data_dir
