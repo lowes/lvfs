@@ -497,13 +497,6 @@ class URL(ABC):
         frame.to_csv(file_handle, **pandas_args)
         await self.write_binary(file_handle.getbuffer())
 
-    async def write_csv(self, csv: pd.DataFrame, **_opts):
-        """ Write the given Pandas dataframe to a csv file """
-        table = pa.Table.from_pandas(csv)
-        bytefile = io.BytesIO()
-        pc.write_table(table, bytefile)
-        await self.write_binary(bytefile.getvalue(), overwrite=True)
-
     async def read_parquet(self, *, recursive: bool = False) -> pd.DataFrame:
         """ Read one or many parquet files
             - If this is a directory, read all the parquet files within it.
@@ -528,9 +521,9 @@ class URL(ABC):
     async def write_orc(self, orc: pd.DataFrame, **_opts):
         """ Write the given Pandas dataframe to an ORC file """
         table = pa.Table.from_pandas(orc)
-        bytefile = io.BytesIO()
-        po.write_table(table, bytefile)
-        await self.write_binary(bytefile.getvalue(), overwrite=True)
+        stream = pa.BufferOutputStream()
+        po.write_table(table, stream)
+        await self.write_binary(stream.getvalue().to_pybytes(), overwrite=True)
 
     async def read_ascii_table(self, column_names: List[str]) -> pd.DataFrame:
         """ Read a file or folder as an ASCII formatted table or a collection of them """
