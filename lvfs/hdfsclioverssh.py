@@ -1,4 +1,3 @@
-import os
 import socket
 import subprocess
 import datetime
@@ -22,10 +21,12 @@ class HDFSCLIOverSSH(URL):
     def __creds(cls):
         # For the time being, we only support protocol-level credential realms
         creds = Credentials.match(classname="HDFSCLIOverSSH")
-        assert "ssh_jump_host" in creds, "You must provide an ssh_jump_host in lvfs.yml to use HDFSCLIOverSSH"
+        assert "ssh_jump_host" in creds, \
+            "You must provide an ssh_jump_host in lvfs.yml to use HDFSCLIOverSSH"
         ssh_jump_host = creds.get("ssh_jump_host")
-        # This is hdpdib for backward compatibility
-        assert "ssh_username" in creds, "You must provide an ssh_username in lvfs.yml to use HDFSCLIOverSSH"
+        # This is for backward compatibility
+        assert "ssh_username" in creds, \
+            "You must provide an ssh_username in lvfs.yml to use HDFSCLIOverSSH"
         username = creds.get("ssh_username")
         return HCoSCreds(username, ssh_jump_host)
 
