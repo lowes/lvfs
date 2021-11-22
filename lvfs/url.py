@@ -9,22 +9,16 @@ import os
 import pickle
 import re
 import tempfile
-from typing import Any, Generator, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 import urllib
 from functools import total_ordering
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-import pyarrow.csv as pc
 import pyarrow.orc as po
 import pyarrow.parquet as pq
 import yaml
-
-# try:
-#     import pyorc
-# except ModuleNotFoundError:
-#     pyorc = None
 
 from lvfs.stat import Stat
 
@@ -447,21 +441,7 @@ class URL(ABC):
             dates[present] = present_ints[:num_rows]
             return np.ma.masked_array(dates, mask=~present)
         else:
-            #try:
-            #TODO: Check whether the problem has been fixed.
             return pa_col.to_numpy()
-            # pyarrow.Array.to_numpy() doesn't support non-primitive types
-            # until v0.17 (zero_copy_only=False), so use to_pandas() as a temp
-            # workaround now, but need to check the content and consistency?
-            # If we don't need the orc support on pyarrow, maybe we don't have
-            # to stick with v0.13 anymore?
-            # except NotImplementedError:
-            #     # to_pandas() will sometimes return numpy arrays already, which dont have to_numpy()
-            #     pandas_obj = pa_col.to_pandas()
-            #     if hasattr(pandas_obj, "to_numpy"):
-            #         return pandas_obj.to_numpy()
-            #     else:
-            #         return pandas_obj
 
     async def read_csv(self, *, recursive: bool = False, **pandas_args) -> pd.DataFrame:
         """ Read one or many csv files
