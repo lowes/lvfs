@@ -9,20 +9,16 @@ import os
 import pickle
 import re
 import tempfile
-from typing import Any, Generator, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 import urllib
 from functools import total_ordering
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+import pyarrow.orc as po
 import pyarrow.parquet as pq
 import yaml
-
-try:
-    import pyorc
-except ModuleNotFoundError:
-    pyorc = None
 
 from lvfs.stat import Stat
 
@@ -445,20 +441,7 @@ class URL(ABC):
             dates[present] = present_ints[:num_rows]
             return np.ma.masked_array(dates, mask=~present)
         else:
-            try:
-                return pa_col.to_numpy()
-            # pyarrow.Array.to_numpy() doesn't support non-primitive types
-            # until v0.17 (zero_copy_only=False), so use to_pandas() as a temp
-            # workaround now, but need to check the content and consistency?
-            # If we don't need the orc support on pyarrow, maybe we don't have
-            # to stick with v0.13 anymore?
-            except NotImplementedError:
-                # to_pandas() will sometimes return numpy arrays already, which dont have to_numpy()
-                pandas_obj = pa_col.to_pandas()
-                if hasattr(pandas_obj, "to_numpy"):
-                    return pandas_obj.to_numpy()
-                else:
-                    return pandas_obj
+            return pa_col.to_numpy()
 
     async def read_csv(self, *, recursive: bool = False, **pandas_args) -> pd.DataFrame:
         """ Read one or many csv files
@@ -508,259 +491,19 @@ class URL(ABC):
         pq.write_table(table, bytefile)
         await self.write_binary(bytefile.getvalue(), overwrite=True)
 
-    async def read_orc(self, *, keep_columns: List[str] = None, recursive: bool = False,
-                       int_cols: str = 'Int'
-                       ) -> pd.DataFrame:
-        """ Read a ORC file, or if this is a directory, read all the ORC files within.
-            Accepts:
-                keep_columns (keyword-only): List: list of columns to read
-                recursive (keyword-only): bool: load all ORC files recursively
-                int_cols (keyword-only): "Int" or "int" or "float": Whether to cast int columns
-                    as Pandas Int or int or float.
-            Returns:
-                a single dataframe concatenated from all ORC files
-
-            Notes:
-                - Files are visited in lexicographic order (handy for ACID tables)
-                - Integer columns are returned as Pandas nullable Int types
-                by default to account for missing values. Since neither python
-                nor numpy support NaN in integer types, this is an option to
-                have a more clear representation of missing values in the
-                output. If np.nan representation is preferred, these columns can
-                be cast to float types by setting the int_cols option. If you
-                are sure no missing values exist in the data, you can set
-                int_cols to 'int' and gain more memory efficiency.
-                - It is uncommon to have decimal columns that do not contain
-                decimals (i.e., they only have whole numbers). Because of this
-                and also to be memory efficient, we return decimal types as float64.
-            """
-        frames = []
-        async for frame in self.read_orc_stripes(keep_columns=keep_columns,
-                                                 recursive=recursive, int_cols=int_cols):
-            frames.append(frame)
-        return pd.concat(frames, ignore_index=True)
-
-    async def read_orc_stripes(self, *, keep_columns=None, recursive=False, int_cols='Int'
-                               ) -> Generator[pd.DataFrame, None, None]:
-        """ Read the stripes from all the ORC files in a folder, one stripe at a time.
-
-            Accepts:
-                recursive (keyword-only): bool: load all ORC files recursively
-                keep_columns (keyword-only): List[str]: Only read these columns
-                int_cols (keyword-only): "Int" or "int" or "float": Whether to cast int columns
-                    as Pandas Int or int or float.
-            Yields:
-                dataframes, one from each ORC stripe.
-
-            Notes:
-                - Files are visited in lexicographic order (handy for ACID tables)
-                - It reads the whole *binary* file at once, like all URL methods.
-                - It only decompresses the file one stripe at a time (reducing memory a lot)
-                - It *does not* deserialize the stripe automatically
-                    - This is because in situations where you need this method,
-                      you probably also have a different deserialization in mind.
-                    - *If you want dataframes, just call .to_pandas() on the results*
-                - It's a generator, so it reads but doesn't decompress until you use it
-                - Consider using this for:
-                    - oversized ORCs made from concatenating a table
-                    - Hive ACID tables, which need oddball parsing and explode in Pandas
+    async def read_orc(self, *, recursive: bool = False) -> pd.DataFrame:
+        """ Read one or many ORC files
+            - If this is a directory, read all the parquet files within it.
+            - If recursive, read all ORCs descended from it ad infinitum
         """
-        if pyorc is None:
-            raise RuntimeError("PyORC is required to read ORC files.")
-        files = sorted(await self.ls(recursive=recursive)) if await self.isdir() else [self]
+        return await self._read_file(pd.read_orc, recursive=recursive)
 
-        # if given as input, select specified columns to read
-        if keep_columns:
-            column_names = keep_columns
-        else:
-            column_names = None
-
-        # Define a mapping from ORC types to Numpy types but map ints to floats
-        # so we can handle NaN in Numpy arrays. Later on we will convert these
-        # float columns back to int types but we will take advantage of Pandas
-        # nullable int type (kudos to them for saving the day where Python and
-        # Numpy both failed!)
-        types_map = {
-            'tinyint': '<f4',
-            'smallint': '<f4',
-            'int': '<f4',
-            'bigint': '<f8',
-            'float': '<f4',
-            'double': '<f8',
-            'decimal': '<f8',
-            'date': '<M8[D]',
-            'timestamp': '<M8[ns]',
-            'boolean': '?'
-        }
-
-        # if the user knows they have no missing values and wants 'int' then cast
-        # to int
-        if int_cols == 'int':
-            types_map = {
-                'tinyint': '<i1',
-                'smallint': '<i2',
-                'int': '<i4',
-                'bigint': '<i8',
-                'float': '<f4',
-                'double': '<f8',
-                'decimal': '<f8',
-                'date': '<M8[D]',
-                'timestamp': '<M8[ns]',
-                'boolean': '?'
-            }
-
-        # Now build a mapping for data types of int columns mapping them to
-        # nullable int type of Pandas. Notice that all these data types have to
-        # start with a capital 'I' (i.e., Int64 as opposed to int64)
-        ints_map = {
-            'tinyint': 'Int8',
-            'smallint': 'Int16',
-            'int': 'Int32',
-            'bigint': 'Int64'
-        }
-
-        # Keep track of runs for reading column names and dtypes since we only need
-        # to do this once. While in theory it is possible to write files with
-        # different schemas and columns into the same HDFS directory, in
-        # practice this won't happen and all files have the same schema and
-        # columns because they belong to the same table. So we need not repeat
-        # this part.
-        run_count = 0
-
-        # read ORC files in the directory one at a time
-        for orc_url in files:
-            try:
-                orc_bytes = await orc_url.read_binary()
-            except IsADirectoryError:
-                # That's fine, move on
-                continue
-            if orc_bytes:
-                # read the file into an ORC Reader object
-                orc = pyorc.Reader(fileo=io.BytesIO(orc_bytes), column_names=column_names)
-                if not run_count:
-                    # get the selected column names from schema
-                    cols = orc.selected_schema.fields
-                    # make sure columns are in the original order
-                    cols = [y for x, y in sorted([(orc.schema.find_column_id(c), c) for c in cols])]
-                    # get the orc types of selected columns
-                    orc_types = [f[1].name for f in orc.selected_schema.fields.items()]
-                    # Build the equivalent numpy types with ints cast to float
-                    # or int (Not Int)
-                    np_types_flts = []
-                    for _ in orc_types:
-                        # if dtype is defined in the mapping then use it
-                        if _ in types_map.keys():
-                            np_types_flts.append(types_map[_])
-                        # otherwise define it as object type
-                        else:
-                            np_types_flts.append(np.object)
-                    # pack cols and np_types_flts into Numpy dtypes form
-                    np_dtypes_flts = list(zip(cols, np_types_flts))
-                    # Find the columns with int types and build a dictionary of
-                    # their names and types
-                    ints_types = dict()
-                    # if the int_cols is set to Int otherwise we don't need it
-                    # for float or int.
-                    if int_cols == 'Int':
-                        for col, orc_type in zip(cols, orc_types):
-                            if 'int' in orc_type:
-                                ints_types.update({col: ints_map[orc_type]})
-                    # Update the run_count so we won't do this again for other
-                    # files of the same table
-                    run_count += 1
-
-                for stripe_i in orc.iter_stripes():
-                    # Read the stripe using Numpy dtypes (these are the ones
-                    # that map ints to floats)
-                    np_cols = np.array(stripe_i.read(), dtype=np_dtypes_flts)
-                    # Convert to Pandas DataFrame but before returning, convert
-                    # those ORC int columns from float type to Pandas nullable
-                    # int type so we get NA for missing int values
-                    if int_cols == 'Int':
-                        yield pd.DataFrame(np_cols).astype(ints_types)
-                    else:
-                        yield pd.DataFrame(np_cols)
-
-    async def write_orc(self, orc: pd.DataFrame, orcschema: Dict[str, str] = None):
-        """Write a Pandas dataframe to an ORC file in a given HDFS directory.
-
-        Notes
-        -----
-        - This function writes a single ORC file (not a partitioned dataset!) to
-          the given HDFS file path which must include the file name.
-        - No file extension is added although including it in the input file
-          name by the user is encouraged.
-        - The compression kind for the ORC file is ZLIB. SNAPPY is not supported
-          in the ORC C++ library. ZLIB is the next best alternative.
-        - If orcschema is not passed, the schema is built from Pandas dtypes.
-          In that case, the less common ORC data types (e.g., MAP, UNION, ...)
-          are cast to STRING.
-        - Although date and timestamp are primitive types, we do not cast them
-          to their corresponding ORC types and instead they get cast to STRING.
-          The demand for these types has been historically low so they are not
-          currently supported by LVFS orc writer.
-        - This function does not resolve permission issues which may be common
-          for writing to various directories on HDFS. Please make sure you have
-          read, write, and execute permissions when you work with a HDFS
-          directory.
-        - Overwriting existing files defaults to true. This behavior is
-          consistent with the way we write parquet files (i.e., no warning is
-          produced if the file already exists).
-
-        Args:
-            orc (pd.DataFrame): Dataframe to be written as ORC into the given file path on HDFS
-            orcschema (Dict[str, str], optional): User-defined schema. The keys
-             are column names and the values are data types. All ORC data types
-             are supported. If it is not passed, then the schema is built using
-             the Pandas dtypes of the orc input. Defaults to None.
-        """
-        if pyorc is None:
-            raise RuntimeError("PyORC is required to write ORC files.")
-
-        # define a mapping from Pandas types to ORC types
-        types_map = {
-            'int8': 'tinyint',
-            'int16': 'smallint',
-            'int32': 'int',
-            'int64': 'bigint',
-            'Int8': 'tinyint',
-            'Int16': 'smallint',
-            'Int32': 'int',
-            'Int64': 'bigint',
-            'float32': 'float',
-            'float64': 'double',
-            'bool': 'boolean'
-        }
-        # convert the dataframe to dictionary
-        pd_dict = orc.to_dict(orient="records")
-        # if there are nullable int types, convert pd.NA to None
-        for row in pd_dict:
-            for k, v in row.items():
-                if row[k] is pd.NA:
-                    row[k] = None
-        # if orcschema is not passed, build it from Pandas dtypes
-        if not orcschema:
-            # extract the pandas types of the input dataframe
-            pd_types = orc.dtypes.astype(np.str).to_dict()
-            # run the mapping to build the equivalent ORC types
-            orcschema = {}
-            for k, v in pd_types.items():
-                if v in types_map.keys():
-                    orcschema.update({k: types_map[v]})
-                else:
-                    # if it's not one of the common types then write it to string
-                    orcschema.update({k: 'string'})
-        # Build the pyorc schema from orcschema. It has to be a
-        #  struct representation in the form "struct<k1:v1,k2:v2>"
-        strct = "struct<" + ','.join(f'{k}:{v}' for k, v in orcschema.items()) + ">"
-        # open in-memory file object for writing
-        bytefile = io.BytesIO()
-        with pyorc.Writer(bytefile,
-                          strct,
-                          struct_repr=pyorc.StructRepr.DICT,
-                          compression=pyorc.CompressionKind.ZLIB) as writer:
-            writer.writerows(pd_dict)
-        await self.write_binary(bytefile.getvalue(), overwrite=True)
+    async def write_orc(self, orc: pd.DataFrame, **_opts):
+        """ Write the given Pandas dataframe to an ORC file """
+        table = pa.Table.from_pandas(orc)
+        stream = pa.BufferOutputStream()
+        po.write_table(table, stream)
+        await self.write_binary(stream.getvalue().to_pybytes(), overwrite=True)
 
     async def read_ascii_table(self, column_names: List[str]) -> pd.DataFrame:
         """ Read a file or folder as an ASCII formatted table or a collection of them """
