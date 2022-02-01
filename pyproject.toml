@@ -11,45 +11,45 @@ classifiers = ["License :: OSI Approved :: MIT License"]
 description-file = "README.md"
 requires-python = ">=3.7"
 requires = [
-    "pandas ~= 1.0",
-    "pyyaml ~= 5.3",
-    "hvac ~= 0.10",
-    "keyring ~= 21.5",
-    "python-dotenv ~= 0.15.0",
-    "aiofiles >= 0.5.0",
-    "pyarrow >= 0.13.0",
+    "pandas ~= 1.4",
+    "pyyaml ~= 6.0",
+    "hvac ~= 0.11",
+    "keyring ~= 23.5",
+    "python-dotenv ~= 0.19",
+    "aiofiles ~= 0.8",
+    "pyarrow ~= 6.0",
     # Pybind is a dependency of pyorc but in some cases (alpine?) pip will not install it.
     # So we force the issue here.
-    "pybind11 ~= 2.6.0",
+    "pybind11 ~= 2.9",
 ]
 
 [tool.flit.metadata.requires-extra]
 all = [
-    "google-cloud-storage ~= 1.29",
-    "minio ~= 6.0",
-    "hdfs ~= 2.5",
-    "paramiko ~= 2.7.1",
+    "google-cloud-storage ~= 2.1",
+    "minio ~= 7.1",
+    "hdfs ~= 2.6",
+    "paramiko ~= 2.9",
     "PySocks ~= 1.7",
-    "requests ~= 2.23",
-    "pyorc ~= 0.4.0",
-    "gssapi ~= 1.6.12",
-    "requests-gssapi ~= 1.2.3"
+    "requests ~= 2.27",
+    "pyorc ~= 0.5",
+    "gssapi ~= 1.7",
+    "requests-gssapi ~= 1.2"
 ]
 gcs = [
-    "google-cloud-storage ~= 1.29"
+    "google-cloud-storage ~= 2.1"
 ]
 minio = [
-    "minio ~= 6.0"
+    "minio ~= 7.1"
 ]
 hdfs = [
-    "hdfs ~= 2.5",
-    "paramiko ~= 2.7.1",
+    "hdfs ~= 2.6",
+    "paramiko ~= 2.9",
     "PySocks ~= 1.7",
-    "requests ~= 2.23"
+    "requests ~= 2.27"
 ]
 test = [
-    "pytest-benchmark ~= 3.0",
-    "pytest-timeout ~= 1.4",
-    "pytest-asyncio ~= 0.14.0",
-    "pytest ~= 6.0"
+    "pytest-benchmark ~= 3.4",
+    "pytest-timeout ~= 2.1",
+    "pytest-asyncio ~= 0.17",
+    "pytest ~= 6.2"
 ]
