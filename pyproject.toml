@@ -26,7 +26,7 @@ requires = [
 [tool.flit.metadata.requires-extra]
 all = [
     "google-cloud-storage ~= 2.1",
-    "minio ~= 7.1",
+    "minio ~= 6.0",
     "hdfs ~= 2.6",
     "paramiko ~= 2.9",
     "PySocks ~= 1.7",
@@ -39,7 +39,7 @@ gcs = [
     "google-cloud-storage ~= 2.1"
 ]
 minio = [
-    "minio ~= 7.1"
+    "minio ~= 6.0"
 ]
 hdfs = [
     "hdfs ~= 2.6",
