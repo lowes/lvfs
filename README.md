@@ -79,7 +79,7 @@ does get published.
 Configure
 =========
 LVFS is designed firstly for HDFS, and sometimes HDFS clusters are firewalled and in a different subnet,
-requiring an intermediary host to facilitate the communnication. There are also several ways you might
+requiring an intermediary host to facilitate the communication. There are also several ways you might
 need to authenticate, and there are some cases where you even need to authenticate different ways
 simultaneously. LVFS handles all the common paths encountered in a large corporate environment.
 
