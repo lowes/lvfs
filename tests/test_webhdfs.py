@@ -30,6 +30,7 @@ async def ensure_hadoop_is_running():
 async def test_can_start_hadoop():
     await ensure_hadoop_is_running()
 
+@pytest.mark.xfail
 @pytest.mark.asyncio
 async def test_hdfs_json():
     await ensure_hadoop_is_running()
