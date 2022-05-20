@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9"]
+        python-version: ["3.8", "3.9"]
 
     steps:
     - uses: actions/checkout@v2
@@ -32,6 +32,13 @@ jobs:
         wget https://dl.min.io/server/minio/release/linux-amd64/minio
         chmod +x minio
         sudo mv minio /usr/bin/minio
+        # HDFS Testing
+        sudo apt-get install -y openjdk-11-jre-headless
+        wget https://dlcdn.apache.org/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
+        tar -zxf hadoop-3.3.1.tar.gz
+        rm hadoop-3.3.1.tar.gz
+        sudo mv hadoop-3.3.1 /opt
+        # Python Pytest
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest flit
         flit install
