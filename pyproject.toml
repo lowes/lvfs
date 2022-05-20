@@ -17,10 +17,7 @@ requires = [
     "keyring ~= 23.5",
     "python-dotenv ~= 0.19",
     "aiofiles ~= 0.8",
-    "pyarrow ~= 6.0",
-    # Pybind is a dependency of pyorc but in some cases (alpine?) pip will not install it.
-    # So we force the issue here.
-    "pybind11 ~= 2.9",
+    "pyarrow ~= 8.0",
 ]
 
 [tool.flit.metadata.requires-extra]
@@ -31,7 +28,6 @@ all = [
     "paramiko ~= 2.9",
     "PySocks ~= 1.7",
     "requests ~= 2.27",
-    "pyorc ~= 0.5",
     "gssapi ~= 1.7",
     "requests-gssapi ~= 1.2"
 ]
